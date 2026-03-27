@@ -1,0 +1,106 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: serapro-postgres
+    environment:
+      POSTGRES_USER: serapro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-serapro_secret}
+      POSTGRES_DB: serapro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serapro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: serapro-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Application
+  app:
+    build: .
+    container_name: serapro-app
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://serapro:${POSTGRES_PASSWORD:-serapro_secret}@postgres:5432/serapro
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             uvicorn src.api.main:app --host 0.0.0.0 --port 8000"
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: serapro-frontend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - app
+    profiles:
+      - dev
+
+  # Frontend (Production - built with nginx)
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: serapro-frontend-prod
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    profiles:
+      - production
+
+  # Nginx Reverse Proxy (Production - unified)
+  nginx:
+    image: nginx:alpine
+    container_name: serapro-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
