@@ -114,10 +114,12 @@ export interface ErrorReport {
 
 export interface SystemStats {
   total_users: number
+  active_users_24h: number
   total_servers: number
   total_deployments: number
-  successful_deployments: number
-  failed_deployments: number
-  ai_calls_today: number
-  ai_cost_today: number
+  deployments_success_24h: number
+  deployments_failed_24h: number
+  total_knowledge_entries: number
+  ai_cost_total_today: number
+  success_rate_24h: number
 }

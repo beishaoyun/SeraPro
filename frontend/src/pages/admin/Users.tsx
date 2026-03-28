@@ -12,8 +12,7 @@ export default function AdminUsers() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data } = await adminApi.listUsers()
-      return data
+      return await adminApi.listUsers()
     },
   })
 
@@ -64,7 +63,7 @@ export default function AdminUsers() {
           <p className="text-muted-foreground text-center py-8">暂无用户</p>
         ) : (
           <div className="space-y-4">
-            {users.map((user) => (
+            {users.map((user: User) => (
               <div
                 key={user.id}
                 className="flex items-center justify-between border-b pb-4 last:border-0"

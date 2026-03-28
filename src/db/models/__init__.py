@@ -7,7 +7,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
 
-from src.db.database import Base
+try:
+    from .database import Base
+except ImportError:
+    from src.db.database import Base
 
 
 class UserRole(str, enum.Enum):
@@ -130,7 +133,6 @@ class KnowledgeBase(Base):
     common_errors = Column(JSON, nullable=False, default=list)
     success_count = Column(Integer, default=0)
     failure_count = Column(Integer, default=0)
-    # embedding = Column(Vector(1536))  # 需要 pgvector 扩展
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -163,3 +165,30 @@ class AuditLog(Base):
         db.add(log)
         db.commit()
         return log
+
+
+class SystemConfig(Base):
+    """系统配置模型"""
+    __tablename__ = "system_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    config_key = Column(String(100), unique=True, nullable=False, index=True)
+    config_value = Column(Text, nullable=False)
+    description = Column(String(500), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+__all__ = [
+    "Base",
+    "User",
+    "Server",
+    "Deployment",
+    "DeploymentStep",
+    "KnowledgeBase",
+    "AuditLog",
+    "SystemConfig",
+    "UserRole",
+    "ServerStatus",
+    "DeploymentStatus",
+]

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Send, Bot, User, X, RefreshCw, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { deploymentsApi } from '@/lib/api'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -45,39 +46,23 @@ export function AIChatDialog({ deploymentId, deploymentStatus, onClose }: AIChat
     setIsLoading(true)
 
     try {
-      const response = await fetch(`/api/v1/deployments/${deploymentId}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context: {
-            deployment_status: deploymentStatus,
-          },
-        }),
+      const response = await deploymentsApi.chat(deploymentId, userMessage.content, {
+        deployment_status: deploymentStatus,
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response')
-      }
-
-      const data = await response.json()
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: data.reply,
+        content: response.data.reply,
         timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, assistantMessage])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error)
 
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: '抱歉，AI 助手暂时不可用。请稍后重试。',
+        content: error.response?.data?.detail || '抱歉，AI 助手暂时不可用。请稍后重试。',
         timestamp: new Date(),
       }
 
@@ -96,12 +81,7 @@ export function AIChatDialog({ deploymentId, deploymentStatus, onClose }: AIChat
 
   const clearChat = async () => {
     try {
-      await fetch(`/api/v1/deployments/${deploymentId}/chat/clear`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
+      await deploymentsApi.clearChat(deploymentId)
       setMessages([])
     } catch (error) {
       console.error('Failed to clear chat:', error)

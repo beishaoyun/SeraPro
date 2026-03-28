@@ -15,9 +15,6 @@ import Settings from '@/pages/settings/Settings'
 
 // 管理员页面
 import AdminLayout from '@/pages/admin/AdminLayout'
-import AdminUsers from '@/pages/admin/Users'
-import AdminSystem from '@/pages/admin/System'
-import AdminErrors from '@/pages/admin/Errors'
 
 // 布局组件
 import AuthLayout from '@/components/layout/AuthLayout'
@@ -99,20 +96,15 @@ export default function App() {
         }
       />
 
-      {/* 管理员路由 - 必须在 /* 之前定义 */}
+      {/* 管理员路由 - 独立顶层路由，在 /* 之前定义 */}
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <AdminRoute>
             <AdminLayout />
           </AdminRoute>
         }
-      >
-        <Route index element={<AdminUsers />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="system" element={<AdminSystem />} />
-        <Route path="errors" element={<AdminErrors />} />
-      </Route>
+      />
 
       {/* 受保护的用户路由 */}
       <Route
