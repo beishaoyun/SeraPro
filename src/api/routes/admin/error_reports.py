@@ -13,7 +13,7 @@ from src.db.models import Deployment, DeploymentStep, Server
 from src.api.routes.auth import get_current_user
 from src.db.models import User
 
-router = APIRouter(prefix="/admin/errors", tags=["admin-errors"])
+router = APIRouter(tags=["admin-errors"])
 
 
 def _check_admin(current_user: User):
@@ -128,10 +128,11 @@ async def get_error_trend(
     ).group_by("date").order_by("date").all()
 
     # 按天统计成功率
+    from sqlalchemy import case
     deployment_stats = db.query(
         func.date_trunc("day", Deployment.created_at).label("date"),
-        func.sum(func.case((Deployment.status == "success", 1), else_=0)).label("success"),
-        func.sum(func.case((Deployment.status == "failed", 1), else_=0)).label("failed"),
+        func.sum(case((Deployment.status == "success", 1), else_=0)).label("success"),
+        func.sum(case((Deployment.status == "failed", 1), else_=0)).label("failed"),
         func.count().label("total")
     ).filter(
         Deployment.created_at >= start_date
