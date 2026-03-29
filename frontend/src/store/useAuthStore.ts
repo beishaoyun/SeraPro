@@ -18,7 +18,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: true,
+      isLoading: !!(typeof window !== 'undefined' && localStorage.getItem('access_token')),
 
       login: async (email: string, password: string) => {
         const { data } = await authApi.login({ email, password })
@@ -34,10 +34,23 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         authApi.logout()
-        set({ user: null, isAuthenticated: false })
+        set({ user: null, isAuthenticated: false, isLoading: false })
       },
 
       fetchUser: async () => {
+        // 如果有存储的用户信息，先恢复加载状态为 false
+        if (get().isAuthenticated && get().user) {
+          set({ isLoading: false })
+          return
+        }
+
+        // 没有 token 时，直接设置为未登录状态
+        const token = localStorage.getItem('access_token')
+        if (!token) {
+          set({ user: null, isAuthenticated: false, isLoading: false })
+          return
+        }
+
         try {
           const { data } = await authApi.getCurrentUser()
           set({ user: data, isAuthenticated: true, isLoading: false })
